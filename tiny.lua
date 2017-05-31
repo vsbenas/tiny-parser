@@ -57,20 +57,31 @@ end
 local gram = P {
 	"program",
 	program = V "Skip" * V "stmtsequence",
-	stmtsequence = try(V "statement",errInvalidStatement) * (sym(";") * try(V "statement",errSemicolon) + #V "statement" * T(errMissingSemicolon))^0,
-	statement = V "ifstmt" + V "repeatstmt" + V "assignstmt" + V "readstmt" + V "writestmt" ,
+	stmtsequence = try(V "statement",errInvalidStatement) * (sym(";") * try(V "statement",errSemicolon) + #V "firsttokens" * T(errMissingSemicolon))^0,
+	
+	
+	firsttokens = kw("if") + kw("then") + kw("else") + kw("end") + kw("repeat") + kw("until") + kw("read") + kw("write") + V "Number" + V "Identifier", -- for the missing semicolon test
+	
+	
+	statement = V "ifstmt" + V "repeatstmt" + V "assignstmt" + V "readstmt" + V "writestmt",
+	
 	ifstmt = kw("if") * V "exp" * try(kw("then"),errIfMissingThen) * V "stmtsequence" * (kw("else") * V "stmtsequence")^-1 * try(kw("end"),errIfMissingEnd), -- error for else?
 	repeatstmt = kw("repeat") * V "stmtsequence" * try(kw("until"),errRepeatMissingUntil) * V "exp",
 	assignstmt = V "Identifier" * sym(":=") * try(V "exp",errAssMissingExp),
 	readstmt = kw("read") * try(V "Identifier",errReadMissingId),
 	writestmt = kw("write") * try(V "exp",errWriteMissingExp),
+	
 	exp = V "simpleexp" * (V "comparisonop" * try(V "simpleexp",errCompMissingSExp))^0,
 	comparisonop = sym("<") + sym("="),
+	
 	simpleexp = V "term" * (V "addop" * try(V "term",errAddopMissingTerm))^0,
 	addop = sym("+") + sym("-"),
+	
 	term = V "factor" * (V "mulop" * try(V "factor",errMulopMissingFactor))^0,
 	mulop = sym("*") + sym("/"),
+	
 	factor = sym("(") * V "exp" * try(sym(")"),errMissingClosingBracket) + V "Number" + V "Identifier",
+	
 	Number = token(P"-"^-1 * R("09")^1),
 	Identifier = token(R("az","AZ")^1),
 	Skip = (space)^0,
@@ -93,10 +104,13 @@ function mymatch(s,g)
 end
 
 		
-	
-while true do
-	print("What is the string we want to interpret?")
-	str = io.read()
-	print(mymatch(str,gram));
+if not arg[1] then	
+	while true do
+		print("What is the string we want to interpret?")
+		str = io.read()
+		print(mymatch(str,gram));
+	end
+else
+	-- argument must be in quotes if it contains spaces
+	print(mymatch(arg[1],gram));
 end
-
