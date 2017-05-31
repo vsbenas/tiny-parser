@@ -6,6 +6,7 @@ lpeg.locale(lpeg)
 local P, V, C, Ct, R, S, B, Cmt = lpeg.P, lpeg.V, lpeg.C, lpeg.Ct, lpeg.R, lpeg.S, lpeg.B, lpeg.Cmt -- for lpeg
 local T = lpeg.T -- lpeglabel
 local space = lpeg.space
+local alpha = lpeg.alpha
 
 local terror = {}
 local vars = {}
@@ -29,9 +30,6 @@ local errCompMissingSExp= newError("Missing Simple Expression for comparison ope
 local errAddopMissingTerm= newError("Missing Term for add operation")
 local errMulopMissingFactor= newError("Missing Factor for mul operation")
 local errMissingClosingBracket= newError("Missing closing bracket")
-
-
-
 function token (patt)
 	return patt * V "Skip"
 end
@@ -46,6 +44,9 @@ function try (patt, err)
 	return patt + T(err)
 end
 
+function throws(patt,err) -- if pattern is matched throw error
+	return patt * T(err)
+end
 
 --[[  todo
 function expect (rule)
@@ -55,17 +56,25 @@ end
 
 
 local gram = P {
+
 	"program",
+	
 	program = V "Skip" * V "stmtsequence",
-	stmtsequence = try(V "statement",errInvalidStatement) * (sym(";") * try(V "statement",errSemicolon) + #V "firsttokens" * T(errMissingSemicolon))^0,
+	
+	stmtsequence = V "statement" * (sym(";") * (V "eossemicolon" + V "statement") + throws(#V "firstTokens",errMissingSemicolon))^0,
+	
+	eossemicolon = throws(-1,errSemicolon), -- semicolon at the end of the input
+	
+	firstTokens = V "keywordsStart" + V "Identifier", -- for the missing semicolon test
+	
+	keywords = V "keywordsStart" + V "keywordsRest",
+	keywordsStart = P "if" + P "repeat" + P "read" + P "write", -- keywords that appear in the beginning of a statement, necessary to check for missing semicolons
+	keywordsRest = P "then" + P "else" + P "end" + P "until",
 	
 	
-	firsttokens = kw("if") + kw("then") + kw("else") + kw("end") + kw("repeat") + kw("until") + kw("read") + kw("write") + V "Number" + V "Identifier", -- for the missing semicolon test
+	statement = try(V "assignstmt" +V "ifstmt" + V "repeatstmt" + V "readstmt" + V "writestmt",errInvalidStatement), -- assignstmt is moved first to match "ifa:=4" instead of "if a (expect:then).."
 	
-	
-	statement = V "ifstmt" + V "repeatstmt" + V "assignstmt" + V "readstmt" + V "writestmt",
-	
-	ifstmt = kw("if") * V "exp" * try(kw("then"),errIfMissingThen) * V "stmtsequence" * (kw("else") * V "stmtsequence")^-1 * try(kw("end"),errIfMissingEnd), -- error for else?
+	ifstmt = kw("if") * V "exp" * try(kw("then"),errIfMissingThen) * V "stmtsequence" * (kw("else") * V "stmtsequence")^-1 * try(kw("end"),errIfMissingEnd),
 	repeatstmt = kw("repeat") * V "stmtsequence" * try(kw("until"),errRepeatMissingUntil) * V "exp",
 	assignstmt = V "Identifier" * sym(":=") * try(V "exp",errAssMissingExp),
 	readstmt = kw("read") * try(V "Identifier",errReadMissingId),
@@ -83,7 +92,10 @@ local gram = P {
 	factor = sym("(") * V "exp" * try(sym(")"),errMissingClosingBracket) + V "Number" + V "Identifier",
 	
 	Number = token(P"-"^-1 * R("09")^1),
-	Identifier = token(R("az","AZ")^1),
+	Identifier = alpha^1 - #V "Reserved",
+	
+	Reserved = V "keywords" * -alpha, -- ifabc is a valid identifier; if, if3 if. are not
+	
 	Skip = (space)^0,
 } * -1
 
@@ -103,14 +115,13 @@ function mymatch(s,g)
   return r
 end
 
-		
-if not arg[1] then	
-	while true do
-		print("What is the string we want to interpret?")
-		str = io.read()
-		print(mymatch(str,gram));
-	end
-else
+function tiny(str) -- to use from test file
+	return mymatch(str,gram)
+end		
+
+
+if arg[1] then	
 	-- argument must be in quotes if it contains spaces
 	print(mymatch(arg[1],gram));
 end
+	
