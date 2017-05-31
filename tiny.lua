@@ -92,7 +92,7 @@ local gram = P {
 	factor = sym("(") * V "exp" * try(sym(")"),errMissingClosingBracket) + V "Number" + V "Identifier",
 	
 	Number = token(P"-"^-1 * R("09")^1),
-	Identifier = alpha^1 - #V "Reserved",
+	Identifier = token(alpha^1 - #V "Reserved"),
 	
 	Reserved = V "keywords" * -alpha, -- ifabc is a valid identifier; if, if3 if. are not
 	
@@ -116,7 +116,8 @@ function mymatch(s,g)
 end
 
 function tiny(str) -- to use from test file
-	return mymatch(str,gram)
+	local r, e, sfail = gram:match(str)
+	return r,e
 end		
 
 
@@ -125,3 +126,21 @@ if arg[1] then
 	print(mymatch(arg[1],gram));
 end
 	
+
+local re = {
+tiny = tiny,
+errSemicolon = errSemicolon,
+errMissingSemicolon = errMissingSemicolon,
+errInvalidStatement = errInvalidStatement,
+errIfMissingThen=errIfMissingThen,
+errIfMissingEnd=errIfMissingEnd,
+errRepeatMissingUntil=errRepeatMissingUntil,
+errAssMissingExp=errAssMissingExp,
+errReadMissingId=errReadMissingId,
+errWriteMissingExp=errWriteMissingExp,
+errCompMissingSExp=errCompMissingSExp,
+errAddopMissingTerm=errAddopMissingTerm,
+errMulopMissingFactor=errMulopMissingFactor,
+errMissingClosingBracket=errMissingClosingBracket
+}
+return re
