@@ -49,7 +49,7 @@ function recorderror(position,label)
 end
 
 function sync (patt)
-	return (-patt * P(1))^0 -- pattern isnt matched then match 1 character
+	return (-patt * P(1))^0 -- skip until we find pattern
 end
 
 
