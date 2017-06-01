@@ -30,6 +30,10 @@ local errCompMissingSExp= newError("Missing Simple Expression for comparison ope
 local errAddopMissingTerm= newError("Missing Term for add operation")
 local errMulopMissingFactor= newError("Missing Factor for mul operation")
 local errMissingClosingBracket= newError("Missing closing bracket")
+
+local errExtra = newError("Extra")
+
+
 function token (patt)
 	return patt * V "Skip"
 end
@@ -59,7 +63,7 @@ local gram = P {
 
 	"program",
 	
-	program = V "Skip" * V "stmtsequence",
+	program = V "Skip" * V "stmtsequence" * -1 + T(errExtra),
 	
 	stmtsequence = V "statement" * (sym(";") * (V "eossemicolon" + V "statement") + throws(#V "firstTokens",errMissingSemicolon))^0,
 	
@@ -97,7 +101,7 @@ local gram = P {
 	Reserved = V "keywords" * -alpha, -- ifabc is a valid identifier; if, if3 if. are not
 	
 	Skip = (space)^0,
-} * -1
+}
 
 
 
