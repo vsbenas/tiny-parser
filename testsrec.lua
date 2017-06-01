@@ -96,7 +96,7 @@ r, e = tiny(s)
 
 
 
---assert(r and e[1].label ==t.errRepeatMissingUntil)
+assert(r and e[1].label ==t.errRepeatMissingUntil)
 -- FAILS! returns Invalid statement
 
 
