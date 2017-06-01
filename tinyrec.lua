@@ -182,8 +182,10 @@ function mymatch (s, g)
 end
 
 function tiny(str) -- to use from test file
+	errors = {}
+	subject = str
 	local r, e, sfail = grec:match(str)
-	return r,e
+	return r,errors
 end		
 
 
