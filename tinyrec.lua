@@ -53,10 +53,10 @@ function sync (patt)
 	return (-patt * P(1))^0 -- skip until we find pattern
 end
 
-
+local Skip = (space)^0
 
 function token (patt)
-	return patt * V "Skip"
+	return patt * Skip
 end
 function sym (str)
 	return token(P(str))
@@ -84,7 +84,7 @@ local gram = P {
 
 	"program",
 	
-	program = V "Skip" * V "stmtsequence" * -1 + T(errExtra),
+	program = Skip * V "stmtsequence" * -1 + T(errExtra),
 	
 	stmtsequence = V "statement" * (sym(";") * (V "eossemicolon" + V "statement") + throws(#V "firstTokens",errMissingSemicolon))^0,
 	
@@ -121,21 +121,16 @@ local gram = P {
 	
 	Reserved = V "keywords" * -alpha, -- ifabc is a valid identifier; if, if3 if. are not
 	
-	Skip = (space)^0,
+
 }
-local final = gram -- start with grammar and build up
+local grec = gram -- start with grammar and build up
 
 local synctoken = sync(sym(";"))
 
 for k,v in pairs(terror) do
-	final = Rec(final,record(k) * synctoken, k)
+	grec = Rec(grec,record(k) * synctoken, k)
 end
 
-local grec = P {
-	"S",
-	S = final,
-	Skip = (space)^0, -- rule skip used outside of grammar?
-}
 
 
 function mymatch (s, g)
