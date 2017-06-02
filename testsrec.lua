@@ -152,4 +152,18 @@ s = "if then c:=1 end"
 r, e = tiny(s)
 
 assert(r and e[1].label ==t.errMissingExp)
+
+-- multiple errors
+-- errMissingClosingBracket + errMulopMissingFactor + errAddopMissingTerm + errReadMissingId + errSemicolon
+s = "a:=(1;a:=1*;a:=1+;read;"
+
+r, e = tiny(s)
+assert(r 
+	and e[1].label ==t.errMissingClosingBracket 
+	and e[2].label ==t.errMulopMissingFactor 
+	and e[3].label ==t.errAddopMissingTerm 
+	and e[4].label ==t.errReadMissingId 
+	and e[5].label ==t.errSemicolon)
+
+
 print("Tests successful!")
