@@ -73,9 +73,8 @@ r, e = tiny(s)
 
 assert(r and e[1].label ==t.errMissingSemicolon)
 -- errInvalidStatement:
-s = "if:=3"
+s = "abc 3"
 r, e = tiny(s)
-
 assert(r and e[1].label ==t.errInvalidStatement)
 
 -- errIfMissingThen:
@@ -141,4 +140,16 @@ r, e = tiny(s)
 
 assert(r and e[1].label ==t.errMissingClosingBracket)
 
+
+--errExtra
+s = "a:=1 )"
+r, e = tiny(s)
+
+assert(r and e[1].label ==t.errExtra)
+
+--errMissingExp
+s = "if then c:=1 end"
+r, e = tiny(s)
+
+assert(r and e[1].label ==t.errMissingExp)
 print("Tests successful!")

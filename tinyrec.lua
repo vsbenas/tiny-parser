@@ -34,6 +34,7 @@ local errMulopMissingFactor= newError("Missing Factor for mul operation")
 local errMissingClosingBracket= newError("Missing closing bracket")
 
 local errExtra = newError("Extra characters after statement")
+local errMissingExp = newError("Missing expression")
 
 
 local subject, errors
@@ -98,8 +99,8 @@ local gram = P {
 	
 	statement = try(V "assignstmt" +V "ifstmt" + V "repeatstmt" + V "readstmt" + V "writestmt",errInvalidStatement), -- assignstmt is moved first to match "ifa:=4" instead of "if a (expect:then).."
 	
-	ifstmt = kw("if") * V "exp" * try(kw("then"),errIfMissingThen) * V "stmtsequence" * (kw("else") * V "stmtsequence")^-1 * try(kw("end"),errIfMissingEnd),
-	repeatstmt = kw("repeat") * V "stmtsequence" * try(kw("until"),errRepeatMissingUntil) * V "exp",
+	ifstmt = kw("if") * try(V "exp",errMissingExp) * try(kw("then"),errIfMissingThen) * V "stmtsequence" * (kw("else") * V "stmtsequence")^-1 * try(kw("end"),errIfMissingEnd),
+	repeatstmt = kw("repeat") * V "stmtsequence" * try(kw("until"),errRepeatMissingUntil) * try(V "exp",errMissingExp),
 	assignstmt = V "Identifier" * sym(":=") * try(V "exp",errAssMissingExp),
 	readstmt = kw("read") * try(V "Identifier",errReadMissingId),
 	writestmt = kw("write") * try(V "exp",errWriteMissingExp),
@@ -124,46 +125,17 @@ local gram = P {
 }
 local final = gram -- start with grammar and build up
 
-function concat(pattern, label)
-	final = Rec(final, pattern,label)
-end
+local synctoken = sync(sym(";"))
 
-concat(V"ErrSemicolon", errSemicolon)
-concat(V"ErrMissingSemicolon", errMissingSemicolon)
-concat(V"ErrInvalidStatement", errInvalidStatement)
-concat(V"ErrIfMissingThen",errIfMissingThen)
-concat(V"ErrIfMissingEnd",errIfMissingEnd)
-concat(V"ErrRepeatMissingUntil",errRepeatMissingUntil)
-concat(V"ErrAssMissingExp",errAssMissingExp)
-concat(V"ErrReadMissingId",errReadMissingId)
-concat(V"ErrWriteMissingExp",errWriteMissingExp)
-concat(V"ErrCompMissingSExp",errCompMissingSExp)
-concat(V"ErrAddopMissingTerm",errAddopMissingTerm)
-concat(V"ErrMulopMissingFactor",errMulopMissingFactor)
-concat(V"ErrMissingClosingBracket",errMissingClosingBracket)
-concat(V"ErrExtra",errExtra)
+for k,v in pairs(terror) do
+	final = Rec(final,record(k) * synctoken, k)
+end
 
 local grec = P {
 	"S",
-		
-	Skip = (space)^0,
 	S = final,
-	ErrSemicolon = record(errSemicolon) * sync(-1), -- error is only thrown for last statement
-	ErrMissingSemicolon = record(errMissingSemicolon) * sync(sym(";")),
-	ErrInvalidStatement = record(errInvalidStatement) * sync(sym(";")), -- skip the whole statement
-	ErrIfMissingThen = record(errIfMissingThen) * sync(sym(";")),
-	ErrIfMissingEnd = record(errIfMissingEnd) * sync(sym(";")),
-	ErrRepeatMissingUntil = record(errRepeatMissingUntil) * sync(sym(";")),
-	ErrAssMissingExp = record(errAssMissingExp) * sync(sym(";")),
-	ErrReadMissingId = record(errReadMissingId) * sync(sym(";")),
-	ErrWriteMissingExp = record(errWriteMissingExp) * sync(sym(";")),
-	ErrCompMissingSExp = record(errCompMissingSExp) * sync(sym(";")), -- could probably reduce sync? from follow set
-	ErrAddopMissingTerm = record(errAddopMissingTerm) * sync(sym(";")),
-	ErrMulopMissingFactor = record(errMulopMissingFactor) * sync(sym(";")),
-	ErrMissingClosingBracket = record(errMissingClosingBracket) * sync(sym(";")), -- could reduce from follow set
-	ErrExtra = record(errExtra) * sync(-1)
+	Skip = (space)^0, -- rule skip used outside of grammar?
 }
-
 
 
 function mymatch (s, g)
@@ -209,6 +181,8 @@ errWriteMissingExp=errWriteMissingExp,
 errCompMissingSExp=errCompMissingSExp,
 errAddopMissingTerm=errAddopMissingTerm,
 errMulopMissingFactor=errMulopMissingFactor,
-errMissingClosingBracket=errMissingClosingBracket
+errMissingClosingBracket=errMissingClosingBracket,
+errExtra=errExtra,
+errMissingExp=errMissingExp,
 }
 return re
